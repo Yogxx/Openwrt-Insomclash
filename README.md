@@ -17,7 +17,7 @@
 - Filemanager, edit config, proxy, dan upload
 
 ### Install
-- Install manual silakan download di release
+- Install manual silakan download di [![Release](https://img.shields.io/github/v/release/bobbyunknown/luci-app-insomclash)](https://github.com/bobbyunknown/luci-app-insomclash/releases)
 - Auto install
 ```
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/bobbyunknown/luci-app-insomclash/refs/heads/main/install.sh)"

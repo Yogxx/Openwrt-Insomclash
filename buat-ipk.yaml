@@ -1,7 +1,0 @@
-- name: Unggah IPK
-  if: env.BUILD_FAILED != 'true'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: |
-    gh release upload ${{ steps.get_info.outputs.version }} \
-      openwrt-sdk/bin/packages/x86_64/base/luci-app-insomclash_${{ steps.get_info.outputs.version }}-1_all.ipk 
