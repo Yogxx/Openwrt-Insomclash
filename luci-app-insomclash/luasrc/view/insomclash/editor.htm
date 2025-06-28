@@ -123,7 +123,7 @@ SOFTWARE.
         const fileName = filePath.split('/').pop();
         document.getElementById('current-file-display').textContent = 'Editing: ' + fileName;
 
-        fetch('<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "load_file")%>', {
+        fetch('<%=luci.dispatcher.build_url("admin", "services", "insomclash", "load_file")%>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -152,7 +152,7 @@ SOFTWARE.
         if (content !== initialContent) {
             var confirmSave = confirm("Content has changed, save?");
             if (confirmSave) {
-                fetch('<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "save_file")%>', {
+                fetch('<%=luci.dispatcher.build_url("admin", "services", "insomclash", "save_file")%>', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
@@ -185,7 +185,7 @@ SOFTWARE.
         }
         var confirmSave = confirm("Confirm delete file: " + currentFile + "?");
         if (confirmSave) {
-            fetch('<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "delete_file")%>', {
+            fetch('<%=luci.dispatcher.build_url("admin", "services", "insomclash", "delete_file")%>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -195,7 +195,7 @@ SOFTWARE.
                .then(data => {
                     if (data.success) {
                         alert("File deleted successfully!");
-                        window.location.href = '<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager")%>';
+                        window.location.href = '<%=luci.dispatcher.build_url("admin", "services", "insomclash", "manager")%>';
                     } else {
                         alert("Delete failed: " + data.message);
                     }
