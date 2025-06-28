@@ -125,7 +125,7 @@ table td, .table .td {
     
     // Function to get dashboard info
     function getDashboardInfo() {
-        return fetch('<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "get_dashboard_info")%>')
+        return fetch('<%=luci.dispatcher.build_url("admin", "services", "insomclash", "get_dashboard_info")%>')
             .then(response => response.json())
             .then(data => {
                 console.log('Dashboard info received:', data);
@@ -142,7 +142,7 @@ table td, .table .td {
     }
     
     function checkServiceStatus() {
-        fetch('<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "service_action")%>?action=status')
+        fetch('<%=luci.dispatcher.build_url("admin", "services", "insomclash", "service_action")%>?action=status')
             .then(response => response.json())
             .then(data => {
                 console.log('Service status:', data);
