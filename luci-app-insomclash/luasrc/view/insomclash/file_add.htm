@@ -41,7 +41,7 @@ SOFTWARE.
 <div class="cbi-value">
     <label class="cbi-value-title"><%:Add New File%></label>
     <div class="cbi-value-field">
-        <form method="post" action="<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "create_file")%>">
+        <form method="post" action="<%=luci.dispatcher.build_url("admin", "services", "insomclash", "create_file")%>">
             <input type="hidden" name="file_type" value="<%=file_type%>" />
             <input type="text" name="filename" placeholder="<%:Enter filename%>" />
             <input type="submit" class="cbi-button cbi-button-add" value="<%:Create & Edit%>" />
