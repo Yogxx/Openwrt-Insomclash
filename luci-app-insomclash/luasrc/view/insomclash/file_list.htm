@@ -42,11 +42,11 @@ SOFTWARE.
             <td class="cbi-section-table-cell"><%=string.format("%.1f KB", file.size / 1024)%></td>
             <td class="cbi-section-table-cell"><%=file.mtime%></td>
             <td class="cbi-section-table-cell">
-                <a href="<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "editor")%>?file=<%=luci.http.urlencode(file.path)%>"
+                <a href="<%=luci.dispatcher.build_url("admin", "services", "insomclash", "editor")%>?file=<%=luci.http.urlencode(file.path)%>"
                    class="cbi-button cbi-button-edit"><%:Edit%></a>
-                <a href="<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "download_file")%>?file=<%=luci.http.urlencode(file.path)%>"
+                <a href="<%=luci.dispatcher.build_url("admin", "services", "insomclash", "download_file")%>?file=<%=luci.http.urlencode(file.path)%>"
                    class="cbi-button cbi-button-neutral"><%:Download%></a>
-                <a href="<%=luci.dispatcher.build_url("admin", "vpn", "insomclash", "delete_file")%>?file=<%=luci.http.urlencode(file.path)%>"
+                <a href="<%=luci.dispatcher.build_url("admin", "services", "insomclash", "delete_file")%>?file=<%=luci.http.urlencode(file.path)%>"
                    class="cbi-button cbi-button-remove"
                    onclick="return confirm('<%:Delete file%> <%=file.name%>?')"><%:Delete%></a>
             </td>
