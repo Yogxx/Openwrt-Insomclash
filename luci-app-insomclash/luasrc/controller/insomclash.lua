@@ -306,9 +306,9 @@ function action_delete_file()
 
     local success = fs.unlink(file_path)
     if success then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=File deleted successfully&success=1")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=File deleted successfully&success=1")
     else
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to delete file&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to delete file&success=0")
     end
 end
 
@@ -331,7 +331,7 @@ function action_upload_file()
         action_restore_backup()
         return
     else
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Invalid upload type&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Invalid upload type&success=0")
         return
     end
 
@@ -356,11 +356,11 @@ function action_upload_file()
                         fd = nixio.open(upload_dir .. filename, "w")
                         is_tar_restore = false
                     else
-                        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Only YAML or tar.gz files allowed&success=0")
+                        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Only YAML or tar.gz files allowed&success=0")
                         return
                     end
                     if not fd then
-                        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to create file&success=0")
+                        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to create file&success=0")
                         return
                     end
                 end
@@ -377,14 +377,14 @@ function action_upload_file()
                 if is_tar_restore then
                     action_restore_individual_folder(upload_type, temp_file)
                 else
-                    http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=File uploaded: " .. filename .. "&success=1")
+                    http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=File uploaded: " .. filename .. "&success=1")
                 end
             end
         end
     )
 
     if not filename then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=No file selected&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=No file selected&success=0")
     end
 end
 
@@ -398,7 +398,7 @@ function action_create_file()
     local filename = http.formvalue("filename")
 
     if not filename or filename == "" then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Filename required&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Filename required&success=0")
         return
     end
 
@@ -410,7 +410,7 @@ function action_create_file()
     elseif file_type == "rule" then
         file_dir = "/etc/insomclash/rule_providers/"
     else
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Invalid file type&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Invalid file type&success=0")
         return
     end
 
@@ -423,7 +423,7 @@ function action_create_file()
     local filepath = file_dir .. filename
 
     if fs.access(filepath) then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=File already exists&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=File already exists&success=0")
         return
     end
 
@@ -438,9 +438,9 @@ function action_create_file()
 
     local success = fs.writefile(filepath, content)
     if success then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "editor") .. "?file=" .. luci.http.urlencode(filepath))
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "editor") .. "?file=" .. luci.http.urlencode(filepath))
     else
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to create file&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to create file&success=0")
     end
 end
 
@@ -491,10 +491,10 @@ function action_backup_files()
                 http.write(content)
                 fs.unlink(temp_file)
             else
-                http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to read backup file&success=0")
+                http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to read backup file&success=0")
             end
         else
-            http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to create backup&success=0")
+            http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to create backup&success=0")
         end
 
     else
@@ -506,7 +506,7 @@ function action_backup_files()
 
         local backup_dir = folder_map[backup_type]
         if not backup_dir or not fs.access(backup_dir) then
-            http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Invalid backup type or directory not found&success=0")
+            http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Invalid backup type or directory not found&success=0")
             return
         end
 
@@ -529,10 +529,10 @@ function action_backup_files()
                 http.write(content)
                 fs.unlink(temp_file)
             else
-                http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to read backup file&success=0")
+                http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to read backup file&success=0")
             end
         else
-            http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=No files to backup or backup failed&success=0")
+            http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=No files to backup or backup failed&success=0")
         end
     end
 end
@@ -553,12 +553,12 @@ function action_restore_backup()
                 if meta and meta.file then
                     filename = meta.file
                     if not (filename:match("%.tar%.gz$") or filename:match("%.tgz$")) then
-                        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Only tar.gz files allowed for restore&success=0")
+                        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Only tar.gz files allowed for restore&success=0")
                         return
                     end
                     fd = nixio.open(temp_file, "w")
                     if not fd then
-                        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to create temp file&success=0")
+                        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to create temp file&success=0")
                         return
                     end
                 end
@@ -587,16 +587,16 @@ function action_restore_backup()
                 fs.unlink(temp_file)
 
                 if extract_success then
-                    http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Backup restored successfully&success=1")
+                    http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Backup restored successfully&success=1")
                 else
-                    http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to restore backup - invalid file format&success=0")
+                    http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to restore backup - invalid file format&success=0")
                 end
             end
         end
     )
 
     if not filename then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=No file selected for restore&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=No file selected for restore&success=0")
     end
 end
 
@@ -607,7 +607,7 @@ function action_restore_individual_folder(folder_type, temp_file)
     local sys = require "luci.sys"
 
     if not temp_file or not fs.access(temp_file) then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=No file selected for restore&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=No file selected for restore&success=0")
         return
     end
 
@@ -620,7 +620,7 @@ function action_restore_individual_folder(folder_type, temp_file)
     local target_dir = folder_map[folder_type]
     if not target_dir then
         fs.unlink(temp_file)
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Invalid folder type for restore&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Invalid folder type for restore&success=0")
         return
     end
 
@@ -649,9 +649,9 @@ function action_restore_individual_folder(folder_type, temp_file)
     end
 
     if files_found then
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=" .. folder_type:upper() .. " folder restored successfully&success=1")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=" .. folder_type:upper() .. " folder restored successfully&success=1")
     else
-        http.redirect(luci.dispatcher.build_url("admin", "vpn", "insomclash", "manager") .. "?message=Failed to restore " .. folder_type .. " folder - no valid files found in backup&success=0")
+        http.redirect(luci.dispatcher.build_url("admin", "services", "insomclash", "manager") .. "?message=Failed to restore " .. folder_type .. " folder - no valid files found in backup&success=0")
     end
 end
 
