@@ -1,82 +1,166 @@
-name: Rolling Build - Mihomo Auto Update
+name: Building insomclash
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'   # ⏰ Setiap jam 00:00 UTC (07:00 WIB)
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'build-all'
+        type: choice
+        options:
+          - 'build-all'
+          - 'build-core'
+          - 'build-app'
+      openwrt_version:
+        description: 'OpenWrt version'
+        required: false
+        default: '24.10.3'
+        type: string
+      custom_tag:
+        description: 'Custom tag'
+        required: true
+        type: string
 
 jobs:
-  build:
+  build_core:
+    if: ${{ github.event.inputs.build_type == 'build-core' || github.event.inputs.build_type == 'build-all' }}
+    permissions:
+      contents: write
+    name: Build Mihomo Core
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_generic
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Preparing Mihomo
+        run: |
+          echo ""
+          mkdir feeds artifacts
+          cp -rf ./mihomo ./feeds
+
+      - name: Building Mihomo Packages
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}-${{ github.event.inputs.openwrt_version || '24.10.1' }}
+          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+          FEED_DIR: ${{ github.workspace }}/feeds
+          PACKAGES: mihomo
+          NO_SHFMT_CHECK: 1
+
+      - name: Delivering Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mihomo-core-${{ github.event.inputs.openwrt_version || '24.10.1' }}_${{ matrix.arch }}
+          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/mihomo*
+
+  build_app:
+    if: ${{ github.event.inputs.build_type == 'build-app' || github.event.inputs.build_type == 'build-all' }}
+    permissions:
+      contents: write
+    name: Build Luci App
     runs-on: ubuntu-latest
 
     steps:
-    - name: 🧱 Checkout
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: 🛠️ Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y build-essential git wget curl python3
+      - name: Preparing Luci App
+        run: |
+          echo ""
+          mkdir feeds artifacts
+          cp -rf ./mihomo ./feeds
+          cp -rf ./luci-app-insomclash ./feeds
 
-    - name: 📥 Clone OpenWrt
-      run: |
-        git clone https://github.com/openwrt/openwrt.git openwrt
-        cd openwrt
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+      - name: Building Luci App Packages
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: x86_64-${{ github.event.inputs.openwrt_version || '24.10.1' }}
+          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
+          FEED_DIR: ${{ github.workspace }}/feeds
+          PACKAGES: mihomo luci-app-insomclash
+          NO_SHFMT_CHECK: 1
 
-    - name: 📂 Clone Mihomo package
-      run: |
-        cd openwrt/package
-        git clone https://github.com/morytyann/OpenWrt-mihomo mihomo
+      - name: Delivering App Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-${{ github.event.inputs.openwrt_version || '24.10.1' }}_all
+          path: ${{ github.workspace }}/artifacts/bin/packages/x86_64/action/luci-app-insomclash*
 
-    - name: 🔄 Auto Update Mihomo Version & Hash
-      run: |
-        cd openwrt/package/mihomo
-        # Ambil versi terbaru dari GitHub API
-        LATEST=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep -Po '"tag_name": "\Kv[0-9\.]+')
-        LATEST=${LATEST#v}
-        echo "📌 Latest version: $LATEST"
+  push_packages:
+    needs: [build_core, build_app]
+    if: always() && (needs.build_core.result == 'success' || needs.build_app.result == 'success')
+    name: Push Packages to Release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-        # Update PKG_VERSION
-        sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=$LATEST/" Makefile
+      - name: Download temporary artifact
+        uses: actions/download-artifact@v4
 
-        # Download tarball dan hitung hash
-        TARBALL="mihomo-$LATEST.tar.gz"
-        URL="https://codeload.github.com/MetaCubeX/mihomo/tar.gz/refs/tags/v$LATEST"
-        echo "📥 Downloading $URL"
-        wget -q -O "$TARBALL" "$URL"
+      - name: Get versions from Makefiles
+        id: version
+        run: |
+          # Get mihomo core version
+          CORE_VERSION=""
+          if [ -f "mihomo/Makefile" ]; then
+            CORE_VERSION=$(grep 'PKG_VERSION:=' mihomo/Makefile | awk -F '=' '{print $2}' | tr -d ' ')
+          fi
 
-        echo "🔑 Calculating SHA256..."
-        NEW_HASH=$(sha256sum "$TARBALL" | awk '{print $1}')
-        echo "✅ New hash: $NEW_HASH"
+          # Get luci app version
+          APP_VERSION=""
+          if [ -f "luci-app-insomclash/Makefile" ]; then
+            APP_VERSION=$(grep 'PKG_VERSION:=' luci-app-insomclash/Makefile | awk -F '=' '{print $2}' | tr -d ' ')
+          fi
 
-        # Update PKG_HASH
-        sed -i "s/^PKG_HASH:=.*/PKG_HASH:=$NEW_HASH/" Makefile
+          echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
 
-        rm -f "$TARBALL"
-        echo "✨ Makefile updated with version $LATEST and hash $NEW_HASH"
+      - name: Moving artifact to releases
+        shell: bash
+        run: |
+          mkdir ./release
+          OPENWRT_VER="${{ github.event.inputs.openwrt_version || '24.10.1' }}"
 
-    - name: 🧰 Setup build config (optional)
-      run: |
-        cd openwrt
-        # Buat default config minimal (bisa diganti sesuai kebutuhan)
-        cat >> .config <<EOF
-CONFIG_PACKAGE_mihomo=y
-CONFIG_TARGET_x86=y
-CONFIG_TARGET_x86_64=y
-CONFIG_TARGET_x86_64_Generic=y
-EOF
-        make defconfig
+          # Copy mihomo core packages (if built)
+          cp -rf ./mihomo-core-${OPENWRT_VER}_x86_64/mihomo* ./release/ 2>/dev/null || true
+          cp -rf ./mihomo-core-${OPENWRT_VER}_aarch64_cortex-a53/mihomo* ./release/ 2>/dev/null || true
+          cp -rf ./mihomo-core-${OPENWRT_VER}_aarch64_cortex-a72/mihomo* ./release/ 2>/dev/null || true
+          cp -rf ./mihomo-core-${OPENWRT_VER}_aarch64_generic/mihomo* ./release/ 2>/dev/null || true
 
-    - name: 🚀 Build firmware
-      run: |
-        cd openwrt
-        make -j$(nproc) V=s
+          # Copy luci app package (if built)
+          cp -rf ./luci-app-${OPENWRT_VER}_all/luci-app-insomclash* ./release/ 2>/dev/null || true
 
-    - name: 📤 Upload firmware artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: openwrt-mihomo-firmware
-        path: openwrt/bin/targets
-        
+      - name: Upload release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./release/*
+          overwrite: true
+          tag: ${{ github.event.inputs.custom_tag }}
+          file_glob: true
+          body: |
+            # ${{ github.event.inputs.custom_tag }} - OpenWrt ${{ github.event.inputs.openwrt_version || '24.10.1' }}
+
+            ### Build Information
+            - Build Type: ${{ github.event.inputs.build_type }}
+            - OpenWrt Version: ${{ github.event.inputs.openwrt_version || '24.10.1' }}
+            - Mihomo Core: v${{ steps.version.outputs.core_version }}
+            - luci-app-insomclash: v${{ steps.version.outputs.app_version }}
+
+            ### Dependencies
+
+            ```bash
+            opkg update && opkg install wget curl coreutils-base64 jq yq dnsmasq-full ip-full iptables-mod-tproxy firewall4 xtables-nft kmod-tun ca-bundle
