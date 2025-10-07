@@ -1,58 +1,82 @@
+name: Rolling Build - Mihomo Auto Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'   # ⏰ Setiap jam 00:00 UTC (07:00 WIB)
+
 jobs:
-  build_core:
-    if: ${{ github.event.inputs.build_type == 'build-core' || github.event.inputs.build_type == 'build-all' }}
-    permissions:
-      contents: write
-    name: Build Mihomo Core
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch:
-          - x86_64
-          - aarch64_cortex-a53
-          - aarch64_cortex-a72
-          - aarch64_generic
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: 🧱 Checkout
+      uses: actions/checkout@v4
 
-      - name: 🔄 Auto update Mihomo PKG_HASH
-        run: |
-          # ambil versi dari Makefile mihomo
-          PKG_VERSION=$(grep 'PKG_VERSION:=' mihomo/Makefile | awk -F '=' '{print $2}' | tr -d ' ')
-          TARBALL="mihomo-$PKG_VERSION.tar.gz"
-          URL="https://codeload.github.com/MetaCubeX/mihomo/tar.gz/refs/tags/v$PKG_VERSION"
+    - name: 🛠️ Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential git wget curl python3
 
-          echo "📥 Download Mihomo v$PKG_VERSION"
-          wget -q -O "$TARBALL" "$URL"
+    - name: 📥 Clone OpenWrt
+      run: |
+        git clone https://github.com/openwrt/openwrt.git openwrt
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
-          echo "🔑 Hitung hash SHA256"
-          NEW_HASH=$(sha256sum "$TARBALL" | awk '{print $1}')
-          echo "✅ Hash baru: $NEW_HASH"
+    - name: 📂 Clone Mihomo package
+      run: |
+        cd openwrt/package
+        git clone https://github.com/morytyann/OpenWrt-mihomo mihomo
 
-          echo "✏️ Update PKG_HASH di mihomo/Makefile"
-          sed -i "s/^PKG_HASH:=.*/PKG_HASH:=$NEW_HASH/" mihomo/Makefile
+    - name: 🔄 Auto Update Mihomo Version & Hash
+      run: |
+        cd openwrt/package/mihomo
+        # Ambil versi terbaru dari GitHub API
+        LATEST=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep -Po '"tag_name": "\Kv[0-9\.]+')
+        LATEST=${LATEST#v}
+        echo "📌 Latest version: $LATEST"
 
-      - name: Preparing Mihomo
-        run: |
-          echo ""
-          mkdir feeds artifacts
-          cp -rf ./mihomo ./feeds
+        # Update PKG_VERSION
+        sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=$LATEST/" Makefile
 
-      - name: Building Mihomo Packages
-        uses: openwrt/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.arch }}-${{ github.event.inputs.openwrt_version || '24.10.1' }}
-          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-          FEED_DIR: ${{ github.workspace }}/feeds
-          PACKAGES: mihomo
-          NO_SHFMT_CHECK: 1
+        # Download tarball dan hitung hash
+        TARBALL="mihomo-$LATEST.tar.gz"
+        URL="https://codeload.github.com/MetaCubeX/mihomo/tar.gz/refs/tags/v$LATEST"
+        echo "📥 Downloading $URL"
+        wget -q -O "$TARBALL" "$URL"
 
-      - name: Delivering Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: mihomo-core-${{ github.event.inputs.openwrt_version || '24.10.1' }}_${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/mihomo*
-          
+        echo "🔑 Calculating SHA256..."
+        NEW_HASH=$(sha256sum "$TARBALL" | awk '{print $1}')
+        echo "✅ New hash: $NEW_HASH"
+
+        # Update PKG_HASH
+        sed -i "s/^PKG_HASH:=.*/PKG_HASH:=$NEW_HASH/" Makefile
+
+        rm -f "$TARBALL"
+        echo "✨ Makefile updated with version $LATEST and hash $NEW_HASH"
+
+    - name: 🧰 Setup build config (optional)
+      run: |
+        cd openwrt
+        # Buat default config minimal (bisa diganti sesuai kebutuhan)
+        cat >> .config <<EOF
+CONFIG_PACKAGE_mihomo=y
+CONFIG_TARGET_x86=y
+CONFIG_TARGET_x86_64=y
+CONFIG_TARGET_x86_64_Generic=y
+EOF
+        make defconfig
+
+    - name: 🚀 Build firmware
+      run: |
+        cd openwrt
+        make -j$(nproc) V=s
+
+    - name: 📤 Upload firmware artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-mihomo-firmware
+        path: openwrt/bin/targets
+        
