@@ -51,7 +51,7 @@ jobs:
       - name: Building Mihomo Packages
         uses: openwrt/gh-action-sdk@main
         env:
-          ARCH: ${{ matrix.arch }}-${{ github.event.inputs.openwrt_version || '24.10.1' }}
+          ARCH: ${{ matrix.arch }}-${{ github.event.inputs.openwrt_version || '24.10.3' }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
           FEED_DIR: ${{ github.workspace }}/feeds
           PACKAGES: mihomo
@@ -60,7 +60,7 @@ jobs:
       - name: Delivering Package
         uses: actions/upload-artifact@v4
         with:
-          name: mihomo-core-${{ github.event.inputs.openwrt_version || '24.10.1' }}_${{ matrix.arch }}
+          name: mihomo-core-${{ github.event.inputs.openwrt_version || '24.10.3' }}_${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/mihomo*
 
   build_app:
@@ -84,7 +84,7 @@ jobs:
       - name: Building Luci App Packages
         uses: openwrt/gh-action-sdk@main
         env:
-          ARCH: x86_64-${{ github.event.inputs.openwrt_version || '24.10.1' }}
+          ARCH: x86_64-${{ github.event.inputs.openwrt_version || '24.10.3' }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
           FEED_DIR: ${{ github.workspace }}/feeds
           PACKAGES: mihomo luci-app-insomclash
@@ -93,7 +93,7 @@ jobs:
       - name: Delivering App Package
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-${{ github.event.inputs.openwrt_version || '24.10.1' }}_all
+          name: luci-app-${{ github.event.inputs.openwrt_version || '24.10.3' }}_all
           path: ${{ github.workspace }}/artifacts/bin/packages/x86_64/action/luci-app-insomclash*
 
   push_packages:
@@ -132,7 +132,7 @@ jobs:
         shell: bash
         run: |
           mkdir ./release
-          OPENWRT_VER="${{ github.event.inputs.openwrt_version || '24.10.1' }}"
+          OPENWRT_VER="${{ github.event.inputs.openwrt_version || '24.10.3' }}"
 
           # Copy mihomo core packages (if built)
           cp -rf ./mihomo-core-${OPENWRT_VER}_x86_64/mihomo* ./release/ 2>/dev/null || true
@@ -152,11 +152,11 @@ jobs:
           tag: ${{ github.event.inputs.custom_tag }}
           file_glob: true
           body: |
-            # ${{ github.event.inputs.custom_tag }} - OpenWrt ${{ github.event.inputs.openwrt_version || '24.10.1' }}
+            # ${{ github.event.inputs.custom_tag }} - OpenWrt ${{ github.event.inputs.openwrt_version || '24.10.3' }}
 
             ### Build Information
             - Build Type: ${{ github.event.inputs.build_type }}
-            - OpenWrt Version: ${{ github.event.inputs.openwrt_version || '24.10.1' }}
+            - OpenWrt Version: ${{ github.event.inputs.openwrt_version || '24.10.3' }}
             - Mihomo Core: v${{ steps.version.outputs.core_version }}
             - luci-app-insomclash: v${{ steps.version.outputs.app_version }}
 
